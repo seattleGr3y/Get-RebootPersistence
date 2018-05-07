@@ -230,7 +230,9 @@ function Invoke-RebootPrompt {
 #>
 	Get-NetInfo
 	Invoke-Robocopy
-	Add-ToZip
+	for ($a=1; $a -le 100; $a++) {
+		Write-Progress -Activity "Working... " -PercentComplete $a -CurrentOperation "$a complete" -Status "Please Wait"; Add-ToZip
+	}
 	Invoke-RebootPrompt
 
 #############################################
