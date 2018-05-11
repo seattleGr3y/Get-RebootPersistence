@@ -12,6 +12,13 @@
 	This can be set up to execute in at least two ways
 		1. social engineering target to run a initial script
 			e.g. pretend to be IT and require this to be run for some reason or get target to click on infected HTA webpage which will execute this code
+
+	run entire script\get immediate reverse shell and persistence via HTA
+	http://9to5it.com/using-html-applications-as-a-powershell-gui/
+	HTA in a webpage
+	http://webreference.com/programming/HTA/index.html
+	help page for HTA
+	http://www.w3.org/TR/html5/dom.html#script-supporting-elements-2
 #>
 
 
