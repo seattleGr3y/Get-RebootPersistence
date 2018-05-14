@@ -1,13 +1,22 @@
-<html>
 <head>
-    <title>Login</title>
-    <HTA:APPLICATION ID="objHTAHelpomatic"
-                     APPLICATIONNAME="HTAHelpomatic"
+    <title>HTA Test</title>
+    <HTA:APPLICATION APPLICATIONNAME="HTA Test"
                      SCROLL="yes"
                      SINGLEINSTANCE="yes"
-                     WINDOWSTATE="maximize">
+                     WINDOWSTATE="maximize"
 </head>
-<SCRIPT Language="VBScript">'.\vbsStart.vbs'</SCRIPT>
+<script language="VBScript">
+    Sub TestSub
+
+    Set WshShell = CreateObject("WScript.Shell")
+    return = WshShell.Run("powershell.exe -ExecutionPolicy Unrestricted -File C:\Users\v-semagi\Desktop\Get-Persistence\Get-Persistence.ps1", 0, true)
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set file = fso.OpenTextFile("c:\temp\output.txt", 1)
+    text = file.ReadAll
+    alert(text)
+    file.Close
+    End Sub
+</script>
 <body>
+    <input type="button" value="Run Script" name="run_button" onClick="TestSub"><p>
 </body>
-</html>
