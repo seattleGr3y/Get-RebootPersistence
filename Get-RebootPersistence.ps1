@@ -19,6 +19,12 @@
 	http://webreference.com/programming/HTA/index.html
 	help page for HTA
 	http://www.w3.org/TR/html5/dom.html#script-supporting-elements-2
+
+	==============
+	deeper persistence
+	--------------------
+	each time the script is run at boot time randomly choose a location from $env list and update the registry entry 
+	also delete old location if they haven't been erased by the user and also remove any event logs that might exist
 #>
 
 
